@@ -22,3 +22,10 @@ class Dependencies(Group):
     app_factory = providers.Factory(creator=SimpleCreator, kwargs={"dep1": "original"})
     request_factory = providers.Factory(scope=Scope.REQUEST, creator=DependentCreator, bound_type=None)
     task_name = providers.Factory(scope=Scope.REQUEST, creator=fetch_task_name)
+    request_singleton = providers.Factory(
+        scope=Scope.REQUEST,
+        creator=SimpleCreator,
+        kwargs={"dep1": "req"},
+        bound_type=None,
+        cache=True,
+    )
