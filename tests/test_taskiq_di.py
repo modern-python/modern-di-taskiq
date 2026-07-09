@@ -7,8 +7,9 @@ from tests.dependencies import Dependencies, DependentCreator, SimpleCreator
 
 
 async def test_resolves_app_request_and_context(broker: InMemoryBroker) -> None:
-    # explicit task_name: taskiq's default is "{module}:{funcname}", not the bare
-    # function name, so pin it to make the FromDI(Dependencies.task_name) assertion exact.
+    # Explicit startup/shutdown (not `async with broker`) so the suite runs on
+    # the whole taskiq>=0.11 floor — InMemoryBroker gained async-context-manager
+    # support only in 0.12.3, and the integration itself needs neither.
     @broker.task(task_name="my_task")
     async def my_task(
         app_instance: typing.Annotated[SimpleCreator, FromDI(SimpleCreator)],
@@ -23,11 +24,14 @@ async def test_resolves_app_request_and_context(broker: InMemoryBroker) -> None:
             "task_name": task_name,
         }
 
-    async with broker:
+    await broker.startup()
+    try:
         # my_task's params are all TaskiqDepends-injected (no caller-supplied
         # positional/keyword args), but ty's kiq() overloads are typed against the
         # decorated function's full ParamSpec, which doesn't know that.
         result = await (await my_task.kiq()).wait_result()  # ty: ignore[no-matching-overload]
+    finally:
+        await broker.shutdown()
 
     assert result.is_err is False
     data = result.return_value
