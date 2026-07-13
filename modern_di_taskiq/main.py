@@ -50,13 +50,13 @@ async def build_di_container(
 
 @dataclasses.dataclass(slots=True, frozen=True)
 class Dependency(typing.Generic[T_co]):
-    dependency: providers.AbstractProvider[T_co] | type[T_co]
+    marker: integrations.Marker[T_co]
 
     async def __call__(self, request_container: typing.Annotated[Container, TaskiqDepends(build_di_container)]) -> T_co:
-        return request_container.resolve_dependency(self.dependency)
+        return self.marker.resolve(request_container)
 
 
 def FromDI(  # noqa: N802
     dependency: providers.AbstractProvider[T_co] | type[T_co], *, use_cache: bool = True
 ) -> T_co:
-    return typing.cast(T_co, TaskiqDepends(Dependency(dependency), use_cache=use_cache))
+    return typing.cast(T_co, TaskiqDepends(Dependency(integrations.Marker(dependency)), use_cache=use_cache))
