@@ -30,21 +30,33 @@ instead of raising `ContainerClosedError`.
 
 taskiq resolves a generator `TaskiqDepends` **once per task** and shares the
 yielded value across every dependent. `build_di_container` exploits this: it
-builds one `Scope.REQUEST` child container per task — seeded with the
-`TaskiqMessage` as context — `yield`s it, and closes it in `finally`. Every
-`FromDI` parameter in a task therefore shares one child, and the child is closed
-after the task completes, including when the task raises (taskiq throws the task
-exception into the generator at the `yield`).
+derives the child's scope and context via
+`modern_di.integrations.bind(taskiq_message_provider, context.message)` —
+`bind(provider, connection)` returns `ConnectionMatch(scope=provider.scope,
+context={provider.context_type: connection})`, so this always produces
+`scope=Scope.REQUEST, context={TaskiqMessage: context.message}`, the same
+values the code used to hand-write. taskiq has a single connection provider,
+so there is nothing for `classify_connection` (which dispatches across
+several providers) to dispatch across here. It builds one child container per
+task via `build_child_container(scope=match.scope, context=match.context)`,
+opened through `Container`'s own `async with` — entering an already-open
+container is a no-op; exiting closes it, run when taskiq finalizes the
+generator. Every `FromDI` parameter in a task therefore shares one child, and
+the child is closed after the task completes, including when the task raises
+(taskiq throws the task exception into the generator at the `yield`, which
+propagates out of the `async with` and triggers the close).
 
 ## Resolution
 
 `FromDI(dependency, *, use_cache=True)` returns a taskiq `TaskiqDepends` wrapping
-a frozen `Dependency`. At resolution time `Dependency.__call__` receives the
-per-task child (via `TaskiqDepends(build_di_container)`) and resolves through it
-with `resolve_dependency`, which dispatches on the argument kind:
+a frozen `Dependency` holding a `modern_di.integrations.Marker(dependency)`. At
+resolution time `Dependency.__call__` receives the per-task child (via
+`TaskiqDepends(build_di_container)`) and calls `self.marker.resolve(request_container)`,
+which is `container.resolve_dependency(self.dependency)` under the hood —
+dispatching on the argument kind:
 
 - an `AbstractProvider` → `resolve_provider(...)`,
 - a bare `type` → `resolve(...)`.
 
-`Dependency` is the deep part of the seam — the provider-vs-type branch and the
-container lookup sit behind a single `__call__`. `FromDI` is just its constructor.
+`Dependency` is the deep part of the seam — the container lookup and the `Marker`
+delegation sit behind a single `__call__`. `FromDI` is just its constructor.

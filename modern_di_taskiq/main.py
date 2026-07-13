@@ -2,7 +2,7 @@ import dataclasses
 import typing
 
 import taskiq
-from modern_di import Container, Scope, providers
+from modern_di import Container, Scope, integrations, providers
 from taskiq import AsyncBroker, Context, TaskiqDepends, TaskiqEvents, TaskiqState
 
 
@@ -41,24 +41,22 @@ T_co = typing.TypeVar("T_co", covariant=True)
 async def build_di_container(
     context: typing.Annotated[Context, TaskiqDepends()],
 ) -> typing.AsyncIterator[Container]:
-    container = fetch_di_container(context.broker).build_child_container(
-        scope=Scope.REQUEST, context={taskiq.TaskiqMessage: context.message}
-    )
-    try:
+    match = integrations.bind(taskiq_message_provider, context.message)
+    async with fetch_di_container(context.broker).build_child_container(
+        scope=match.scope, context=match.context
+    ) as container:
         yield container
-    finally:
-        await container.close_async()
 
 
 @dataclasses.dataclass(slots=True, frozen=True)
 class Dependency(typing.Generic[T_co]):
-    dependency: providers.AbstractProvider[T_co] | type[T_co]
+    marker: integrations.Marker[T_co]
 
     async def __call__(self, request_container: typing.Annotated[Container, TaskiqDepends(build_di_container)]) -> T_co:
-        return request_container.resolve_dependency(self.dependency)
+        return self.marker.resolve(request_container)
 
 
 def FromDI(  # noqa: N802
     dependency: providers.AbstractProvider[T_co] | type[T_co], *, use_cache: bool = True
 ) -> T_co:
-    return typing.cast(T_co, TaskiqDepends(Dependency(dependency), use_cache=use_cache))
+    return typing.cast(T_co, TaskiqDepends(Dependency(integrations.Marker(dependency)), use_cache=use_cache))
