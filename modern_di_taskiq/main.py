@@ -2,7 +2,7 @@ import dataclasses
 import typing
 
 import taskiq
-from modern_di import Container, Scope, providers
+from modern_di import Container, Scope, integrations, providers
 from taskiq import AsyncBroker, Context, TaskiqDepends, TaskiqEvents, TaskiqState
 
 
@@ -41,13 +41,11 @@ T_co = typing.TypeVar("T_co", covariant=True)
 async def build_di_container(
     context: typing.Annotated[Context, TaskiqDepends()],
 ) -> typing.AsyncIterator[Container]:
-    container = fetch_di_container(context.broker).build_child_container(
-        scope=Scope.REQUEST, context={taskiq.TaskiqMessage: context.message}
-    )
-    try:
+    match = integrations.bind(taskiq_message_provider, context.message)
+    async with fetch_di_container(context.broker).build_child_container(
+        scope=match.scope, context=match.context
+    ) as container:
         yield container
-    finally:
-        await container.close_async()
 
 
 @dataclasses.dataclass(slots=True, frozen=True)
