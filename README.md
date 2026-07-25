@@ -21,6 +21,8 @@
 
 Full guide: [taskiq integration docs](https://modern-di.modern-python.org/integrations/taskiq/)
 
+Usage example: [examples/](./examples)
+
 ## Installation
 
 ```bash
