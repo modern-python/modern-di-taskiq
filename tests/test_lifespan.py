@@ -12,7 +12,7 @@ def test_fetch_returns_the_same_container(broker: InMemoryBroker) -> None:
 
 def test_setup_di_returns_the_container() -> None:
     broker_ = InMemoryBroker()
-    container = Container(groups=[Dependencies], validate=True)
+    container = Container(groups=[Dependencies])
     assert modern_di_taskiq.setup_di(broker_, container) is container
 
 

@@ -9,5 +9,5 @@ from tests.dependencies import Dependencies
 @pytest.fixture
 def broker() -> InMemoryBroker:
     broker_ = InMemoryBroker()
-    setup_di(broker_, container=Container(groups=[Dependencies], validate=True))
+    setup_di(broker_, container=Container(groups=[Dependencies]))
     return broker_

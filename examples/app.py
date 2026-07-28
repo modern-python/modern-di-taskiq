@@ -27,8 +27,9 @@ class AppGroup(Group):
 
 
 broker = InMemoryBroker()
-container = Container(groups=[AppGroup], validate=True)
+container = Container(groups=[AppGroup])
 setup_di(broker, container)
+container.validate()  # optional fail-fast; must come after setup_di registers its providers
 
 
 @broker.task

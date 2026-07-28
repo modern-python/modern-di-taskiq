@@ -79,7 +79,7 @@ async def test_request_child_closed_on_task_error() -> None:
         )
 
     broker = InMemoryBroker()
-    setup_di(broker, Container(groups=[Boom], validate=True))
+    setup_di(broker, Container(groups=[Boom]))
 
     @broker.task(task_name="boom")
     async def boom(_res: typing.Annotated[SimpleCreator, FromDI(Boom.resource)]) -> None:
