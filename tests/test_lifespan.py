@@ -25,6 +25,14 @@ async def test_startup_opens_and_shutdown_closes(broker: InMemoryBroker) -> None
 
 
 async def test_restart_reopens_without_error(broker: InMemoryBroker) -> None:
+    """INVARIANT: a second worker cycle reopens the root container instead of raising.
+
+    Broken by making the ``WORKER_STARTUP`` handler conditional, or by dropping it on the grounds
+    that a fresh ``Container`` is already open -- which it is, so the first cycle passes either way
+    and the regression only shows on the second. Worker processes restart: on redeploy, after a
+    crash, and between two ``startup()``/``shutdown()`` pairs in one test session. Without the
+    reopen the container closed by the previous shutdown stays closed and every task fails.
+    """
     container = fetch_di_container(broker)
     await broker.startup()
     await broker.shutdown()

@@ -79,9 +79,9 @@ The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker proc
 
 | Symbol | Description |
 |---|---|
-| `setup_di(broker, container)` | Stores the APP-scope container on `broker.state`, opens/closes it on worker startup/shutdown, and builds a `Scope.REQUEST` child container per task. Returns the container |
+| `setup_di(broker, container)` | Stores the root container on `broker.state`, opens/closes it on worker startup/shutdown, and builds a `Scope.REQUEST` child container per task. Returns the container |
 | `FromDI(dependency)` | Inert marker for `Annotated[T, FromDI(...)]` in task signatures; accepts a provider instance or a type |
-| `fetch_di_container(broker)` | Returns the APP-scope container registered with the taskiq broker |
+| `fetch_di_container(broker)` | Returns the root container attached to the taskiq broker |
 | `taskiq_message_provider` | `ContextProvider` for the current `taskiq.TaskiqMessage` (`REQUEST` scope) |
 
 ## 📦 [PyPI](https://pypi.org/project/modern-di-taskiq)

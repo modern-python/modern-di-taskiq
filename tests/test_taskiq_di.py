@@ -42,13 +42,27 @@ async def test_resolves_app_request_and_context(broker: InMemoryBroker) -> None:
     assert data["task_name"] == "my_task"
 
 
-async def test_request_child_shared_within_task_isolated_across_tasks(broker: InMemoryBroker) -> None:
+async def test_per_task_child_shared_within_task_isolated_across_tasks(broker: InMemoryBroker) -> None:
+    """INVARIANT: one per-task child per task execution, shared by its parameters, never across tasks.
+
+    Broken by anything that stops the container builder being resolved exactly once per task:
+    taking the child with ``use_cache=False``, hoisting it out to broker or worker lifetime to save
+    an allocation, or moving it under a middleware that keys children by anything coarser than a
+    single execution. Sharing within the task is what makes a cached REQUEST-scoped provider mean
+    one instance per task; isolation across tasks is what stops one task's message context, cached
+    values and finalizers leaking into the next task the worker picks up.
+
+    The two parameters name *different* providers deliberately. Two parameters naming the same one
+    collapse into a single taskiq dependency node, resolved once whatever the child count, so such a
+    test would stay green while every parameter got its own child.
+    """
+
     @broker.task(task_name="shared")
     async def collect(
-        a: typing.Annotated[SimpleCreator, FromDI(Dependencies.request_singleton)],
-        b: typing.Annotated[SimpleCreator, FromDI(Dependencies.request_singleton)],
+        direct: typing.Annotated[SimpleCreator, FromDI(Dependencies.request_singleton)],
+        holder: typing.Annotated[DependentCreator, FromDI(Dependencies.request_singleton_holder)],
     ) -> tuple[bool, SimpleCreator]:
-        return (a is b, a)
+        return (direct is holder.dep1, direct)
 
     await broker.startup()
     try:
@@ -61,12 +75,20 @@ async def test_request_child_shared_within_task_isolated_across_tasks(broker: In
     assert r2.is_err is False
     shared1, inst1 = r1.return_value
     shared2, inst2 = r2.return_value
-    assert shared1 is True  # two FromDI params in one task share ONE request child
+    assert shared1 is True  # two FromDI params in one task share ONE per-task child
     assert shared2 is True
     assert inst1 is not inst2  # each task gets its own child (cross-task isolation)
 
 
-async def test_request_child_closed_on_task_error() -> None:
+async def test_per_task_child_closed_on_task_error() -> None:
+    """INVARIANT: the per-task child is closed when the task raises, not only when it returns.
+
+    Broken by closing the child anywhere but the exit of the ``async with`` in the generator
+    dependency -- after the ``yield`` without a try, or from a caller that only runs on the success
+    path. taskiq throws the task's exception into the generator at the ``yield``, so the error path
+    is the one that silently regresses: a worker survives failing tasks, so a finalizer that stops
+    running on errors leaks a connection per failure until the process dies rather than at once.
+    """
     teardowns: list[str] = []
 
     class Boom(Group):
