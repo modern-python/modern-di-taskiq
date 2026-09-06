@@ -29,3 +29,9 @@ class Dependencies(Group):
         bound_type=None,
         cache=True,
     )
+    request_singleton_holder = providers.Factory(
+        scope=Scope.REQUEST,
+        creator=DependentCreator,
+        kwargs={"dep1": request_singleton},
+        bound_type=None,
+    )
