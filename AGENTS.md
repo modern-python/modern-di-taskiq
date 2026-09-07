@@ -17,12 +17,7 @@ and ships as a separate PyPI package.
 
 ## Architecture
 
-All implementation is `modern_di_taskiq/main.py`, short enough to read whole. Read it. What reading
-it will not tell you is why two of its shapes are load-bearing rather than incidental: the per-task
-child rides a generator `TaskiqDepends` instead of a middleware
-([ADR-0001](docs/adr/0001-per-task-scope-rides-taskiq-dependencies.md)), and only the `WORKER_*`
-lifecycle pair is wired
-([ADR-0002](docs/adr/0002-only-worker-lifecycle-is-wired.md)).
+All implementation is `modern_di_taskiq/main.py`, short enough to read whole. Read it.
 
 ## Workflow
 
