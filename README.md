@@ -21,7 +21,7 @@
 
 Full guide: [taskiq integration docs](https://modern-di.modern-python.org/integrations/taskiq/)
 
-Usage example: [examples/](./examples)
+Usage example: [examples/](https://github.com/modern-python/modern-di-taskiq/tree/main/examples)
 
 ## Installation
 
@@ -86,7 +86,7 @@ The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker proc
 
 ## 📦 [PyPI](https://pypi.org/project/modern-di-taskiq)
 
-## 📝 [License](LICENSE)
+## 📝 [License](https://github.com/modern-python/modern-di-taskiq/blob/main/LICENSE)
 
 ## Part of `modern-python`
 
