@@ -32,7 +32,14 @@ def setup_di(broker: AsyncBroker, container: Container) -> Container:
 
 
 def fetch_di_container(broker: AsyncBroker) -> Container:
-    return typing.cast(Container, getattr(broker.state, _ROOT_CONTAINER_ATTR))
+    try:
+        return typing.cast(Container, getattr(broker.state, _ROOT_CONTAINER_ATTR))
+    except AttributeError:
+        msg = (
+            "No modern-di container found on the broker. "
+            "Call setup_di(broker, container) before using FromDI or fetch_di_container."
+        )
+        raise RuntimeError(msg) from None
 
 
 T_co = typing.TypeVar("T_co", covariant=True)

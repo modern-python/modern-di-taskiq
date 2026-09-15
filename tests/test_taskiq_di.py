@@ -1,3 +1,4 @@
+import re
 import typing
 
 from modern_di import Container, Group, Scope, providers
@@ -116,3 +117,21 @@ async def test_per_task_child_closed_on_task_error() -> None:
 
     assert result.is_err is True  # the task raised
     assert teardowns == ["closed"]  # per-task child was still closed (finalizer ran) on the error path
+
+
+async def test_from_di_without_setup_di_raises_clear_runtime_error() -> None:
+    broker = InMemoryBroker()
+
+    @broker.task(task_name="no_setup")
+    async def no_setup(_dep: typing.Annotated[SimpleCreator, FromDI(SimpleCreator)]) -> None:
+        """Never runs: resolving the FromDI parameter fails before the body."""
+
+    await broker.startup()
+    try:
+        result = await (await no_setup.kiq()).wait_result()  # ty: ignore[no-matching-overload]
+    finally:
+        await broker.shutdown()
+
+    assert result.is_err is True
+    assert isinstance(result.error, RuntimeError)
+    assert re.search(r"setup_di\(broker, container\)", str(result.error))
