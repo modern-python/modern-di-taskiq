@@ -31,7 +31,7 @@ uv add modern-di-taskiq      # or: pip install modern-di-taskiq
 
 ## Usage
 
-`setup_di` stores the container on `broker.state` and registers `WORKER_STARTUP`/`WORKER_SHUTDOWN` handlers that open/close it, and builds a `Scope.REQUEST` child container for each task the worker executes. `FromDI` resolves a provider (or type) into a task parameter — no per-task decorator is needed.
+`setup_di` stores the container on `broker.state` and registers `WORKER_STARTUP`/`WORKER_SHUTDOWN` handlers that open/close it. `FromDI` resolves a provider (or type) into a task parameter through a taskiq dependency, which builds a `Scope.REQUEST` child container for the task and closes it when the task finishes. No per-task decorator is needed.
 
 ```python
 import typing
@@ -73,14 +73,14 @@ async def greet(
     return greeter.greet(name)
 ```
 
-The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker process starts and stops, so a script that calls tasks directly (like `InMemoryBroker` in a test) must drive the container lifecycle itself — e.g. `async with broker: ...`. The per-task `Scope.REQUEST` child is torn down asynchronously (`close_async()`), so async REQUEST-scoped finalizers run correctly while factories build synchronously. `taskiq.TaskiqMessage` is resolvable within DI via the pre-built `taskiq_message_provider` context provider.
+The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker process starts and stops, so a script that calls tasks directly (like `InMemoryBroker` in a test) must drive the container lifecycle itself, for example with `async with broker: ...`. Providers resolve synchronously, but the per-task `Scope.REQUEST` child is closed with `close_async()`, so REQUEST-scoped providers can have async finalizers. `taskiq.TaskiqMessage` is resolvable within DI via the pre-built `taskiq_message_provider` context provider.
 
 ## API
 
 | Symbol | Description |
 |---|---|
-| `setup_di(broker, container)` | Stores the root container on `broker.state`, opens/closes it on worker startup/shutdown, and builds a `Scope.REQUEST` child container per task. Returns the container |
-| `FromDI(dependency)` | Inert marker for `Annotated[T, FromDI(...)]` in task signatures; accepts a provider instance or a type. Raises `RuntimeError` naming `setup_di` when a task reaches it without `setup_di` called |
+| `setup_di(broker, container)` | Stores the root container on `broker.state`, opens/closes it on worker startup/shutdown, and registers `taskiq_message_provider`. Returns the container |
+| `FromDI(dependency, *, use_cache=True)` | taskiq dependency that resolves a provider instance or a type from the task's `Scope.REQUEST` child container, building that child on first use; use it as `Annotated[T, FromDI(...)]` in task signatures. `use_cache` is passed to `TaskiqDepends`. Raises `RuntimeError` naming `setup_di` when a task reaches it without `setup_di` called |
 | `fetch_di_container(broker)` | Returns the root container attached to the taskiq broker |
 | `taskiq_message_provider` | `ContextProvider` for the current `taskiq.TaskiqMessage` (`REQUEST` scope) |
 
@@ -90,7 +90,7 @@ The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker proc
 
 ## Part of `modern-python`
 
-Built on [`modern-di`](https://github.com/modern-python/modern-di), a dependency-injection framework with IoC container and scopes.
+Built on [`modern-di`](https://github.com/modern-python/modern-di), a dependency-injection framework with an IoC container and scopes.
 
 Browse the full list of templates and libraries in
-[`modern-python`](https://github.com/modern-python) — see the org profile for the categorized index.
+[`modern-python`](https://github.com/modern-python); the org profile has the categorized index.
