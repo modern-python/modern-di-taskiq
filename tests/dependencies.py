@@ -14,8 +14,8 @@ class DependentCreator:
     dep1: SimpleCreator
 
 
-def fetch_task_name(message: taskiq.TaskiqMessage | None = None) -> str:
-    return message.task_name if message else ""
+def fetch_task_name(message: taskiq.TaskiqMessage) -> str:
+    return message.task_name
 
 
 class Dependencies(Group):

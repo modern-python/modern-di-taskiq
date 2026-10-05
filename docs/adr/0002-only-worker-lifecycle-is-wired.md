@@ -8,5 +8,6 @@ from them, then close them on a shutdown event a short-lived script often never 
 documented in `README.md` rather than hidden: a process that both kicks and executes gets no
 lifecycle unless the worker events fire, which `InMemoryBroker.startup()` arranges by firing both
 pairs. `container.open()` on worker startup is unconditional and a no-op on a fresh container; it
-earns its keep on a second worker cycle, reopening deliberately what the previous `WORKER_SHUTDOWN`
-closed instead of leaving modern-di to reopen it implicitly with a `ContainerClosedWarning`.
+earns its keep on a second worker cycle, reopening what the previous `WORKER_SHUTDOWN` closed. From
+modern-di 4.0 a resolve from a closed container raises `ContainerClosedError`, so without this call
+every task in the second cycle would fail.
