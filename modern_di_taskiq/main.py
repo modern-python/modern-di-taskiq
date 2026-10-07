@@ -66,4 +66,4 @@ class Dependency(typing.Generic[T_co]):
 def FromDI(  # noqa: N802
     dependency: providers.AbstractProvider[T_co] | type[T_co], *, use_cache: bool = True
 ) -> T_co:
-    return typing.cast(T_co, TaskiqDepends(Dependency(integrations.Marker(dependency)), use_cache=use_cache))
+    return TaskiqDepends(Dependency(integrations.Marker(dependency)), use_cache=use_cache)
