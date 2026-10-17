@@ -102,9 +102,10 @@ The worker events then leave the root container alone. Each task still gets its 
 | `fetch_di_container(broker)` | Returns the root container attached to the taskiq broker |
 | `taskiq_message_provider` | `ContextProvider` for the current `taskiq.TaskiqMessage` (`REQUEST` scope) |
 
-## 📦 [PyPI](https://pypi.org/project/modern-di-taskiq)
+## Links
 
-## 📝 [License](https://github.com/modern-python/modern-di-taskiq/blob/main/LICENSE)
+- [PyPI](https://pypi.org/project/modern-di-taskiq)
+- [License](https://github.com/modern-python/modern-di-taskiq/blob/main/LICENSE)
 
 ## Part of `modern-python`
 
