@@ -83,7 +83,11 @@ async def build_di_container(
     async with fetch_di_container(context.broker).build_child_container(
         scope=match.scope, context=match.context
     ) as container:
-        yield container
+        try:
+            yield container
+        except Exception:  # noqa: BLE001
+            # taskiq throws the task's own error in here and logs it again if it comes back out.
+            return
 
 
 @dataclasses.dataclass(slots=True, frozen=True)

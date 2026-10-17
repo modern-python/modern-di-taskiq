@@ -1,6 +1,8 @@
+import logging
 import re
 import typing
 
+import pytest
 from modern_di import Container, Group, Scope, providers
 from taskiq import InMemoryBroker
 
@@ -117,6 +119,25 @@ async def test_per_task_child_closed_on_task_error() -> None:
 
     assert result.is_err is True  # the task raised
     assert teardowns == ["closed"]  # per-task child was still closed (finalizer ran) on the error path
+
+
+async def test_task_error_is_not_logged_again_as_a_teardown_error(
+    broker: InMemoryBroker, caplog: pytest.LogCaptureFixture
+) -> None:
+    @broker.task(task_name="fails")
+    async def fails(_dep: typing.Annotated[SimpleCreator, FromDI(SimpleCreator)]) -> None:
+        msg = "kaboom"
+        raise ValueError(msg)
+
+    await broker.startup()
+    try:
+        with caplog.at_level(logging.WARNING):
+            result = await (await fails.kiq()).wait_result()  # ty: ignore[no-matching-overload]
+    finally:
+        await broker.shutdown()
+
+    assert result.is_err is True
+    assert [r.getMessage() for r in caplog.records if r.name == "taskiq.dependencies.ctx"] == []
 
 
 async def test_from_di_without_setup_di_raises_clear_runtime_error() -> None:
