@@ -11,8 +11,8 @@ A term is listed only when there is a synonym to reject, or a meaning subtle eno
 docs must agree on it. General programming vocabulary does not belong here, however heavily this
 package uses it.
 
-The domain terms are `modern-di`'s — `Container`, `Provider`, `Group`, `Scope`, `Resolution`,
-`Override` — and taskiq's — broker, worker, task, message, middleware, result backend. Those
+The domain terms are `modern-di`'s (`Container`, `Provider`, `Group`, `Scope`, `Resolution`,
+`Override`) and taskiq's (broker, worker, task, message, middleware, result backend). Those
 projects are the authority for all of them; nothing here redefines one. The two below are this
 package's own.
 
@@ -21,12 +21,12 @@ The `Container` that `setup_di` attaches to `broker.state`: the one a caller con
 in, and the one `fetch_di_container` returns. By default the worker's startup event opens it, and
 shutdown closes it after all `WORKER_SHUTDOWN` handlers and middleware `shutdown()` calls; with
 `setup_di(..., manage_lifespan=False)` the caller does.
-_Avoid_: APP-scope container — that names a scope where what matters is the position at the top of
+_Avoid_: APP-scope container. That names a scope where what matters is the position at the top of
 the tree, and `Scope.APP` is `modern-di`'s word for a band in the hierarchy, not for this object.
 
 **Per-task child**:
 The child container built for one task execution, carrying that task's `TaskiqMessage` as context.
 Exactly one exists per task: every `FromDI` parameter in a task shares it, no two tasks share one,
-and it is closed when the task ends — including when the task raises.
-_Avoid_: request child — `REQUEST` is the scope it sits at, but nothing here is a request; the unit
+and it is closed when the task ends, including when the task raises.
+_Avoid_: request child. `REQUEST` is the scope it sits at, but nothing here is a request; the unit
 of work is a task.
