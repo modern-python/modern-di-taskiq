@@ -10,7 +10,7 @@ from tests.dependencies import Dependencies, DependentCreator, SimpleCreator
 
 async def test_resolves_app_request_and_context(broker: InMemoryBroker) -> None:
     # Explicit startup/shutdown (not `async with broker`) so the suite runs on
-    # the whole taskiq>=0.11 floor — InMemoryBroker gained async-context-manager
+    # the whole taskiq>=0.11.8 floor — InMemoryBroker gained async-context-manager
     # support only in 0.12.3, and the integration itself needs neither.
     @broker.task(task_name="my_task")
     async def my_task(
