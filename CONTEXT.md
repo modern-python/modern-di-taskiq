@@ -18,8 +18,9 @@ package's own.
 
 **Root container**:
 The `Container` that `setup_di` attaches to `broker.state`: the one a caller constructs and hands
-in, and the one `fetch_di_container` returns. By default the worker's startup and shutdown events
-open and close it; with `setup_di(..., manage_lifespan=False)` the caller does.
+in, and the one `fetch_di_container` returns. By default the worker's startup event opens it, and
+shutdown closes it after all `WORKER_SHUTDOWN` handlers and middleware `shutdown()` calls; with
+`setup_di(..., manage_lifespan=False)` the caller does.
 _Avoid_: APP-scope container — that names a scope where what matters is the position at the top of
 the tree, and `Scope.APP` is `modern-di`'s word for a band in the hierarchy, not for this object.
 

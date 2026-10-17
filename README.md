@@ -31,7 +31,7 @@ uv add modern-di-taskiq      # or: pip install modern-di-taskiq
 
 ## Usage
 
-`setup_di` stores the container on `broker.state` and registers `WORKER_STARTUP`/`WORKER_SHUTDOWN` handlers that open/close it. `FromDI` resolves a provider (or type) into a task parameter through a taskiq dependency, which builds a `Scope.REQUEST` child container for the task and closes it when the task finishes. No per-task decorator is needed.
+`setup_di` stores the container on `broker.state` and opens it on `WORKER_STARTUP`. At shutdown it closes the container after every `WORKER_SHUTDOWN` handler and every middleware `shutdown()`, so your shutdown code can still resolve `Scope.APP` dependencies and their finalizers run last. `FromDI` resolves a provider (or type) into a task parameter through a taskiq dependency, which builds a `Scope.REQUEST` child container for the task and closes it when the task finishes. No per-task decorator is needed.
 
 ```python
 import typing

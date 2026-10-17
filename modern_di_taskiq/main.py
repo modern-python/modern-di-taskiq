@@ -3,7 +3,7 @@ import typing
 
 import taskiq
 from modern_di import Container, Scope, integrations, providers
-from taskiq import AsyncBroker, Context, TaskiqDepends, TaskiqEvents, TaskiqState
+from taskiq import AsyncBroker, Context, TaskiqDepends, TaskiqEvents, TaskiqMiddleware, TaskiqState
 
 
 taskiq_message_provider = providers.ContextProvider(taskiq.TaskiqMessage, scope=Scope.REQUEST)
@@ -16,17 +16,46 @@ _ROOT_CONTAINER_ATTR = "modern_di_container"
 _CONNECTION_PROVIDERS = (taskiq_message_provider,)
 
 
+class _RootCloser(TaskiqMiddleware):
+    def __init__(self, container: Container) -> None:
+        super().__init__()
+        self.container = container
+        self.broker_runs_middlewares = False
+
+    def startup(self) -> None:
+        self.broker_runs_middlewares = True
+
+    async def shutdown(self) -> None:
+        if self.broker_runs_middlewares:
+            await self.container.close_async()
+
+
+def _move_to_end(items: list[typing.Any], item: object) -> None:
+    if item in items:
+        items.remove(item)
+    items.append(item)
+
+
 def setup_di(broker: AsyncBroker, container: Container, *, manage_lifespan: bool = True) -> Container:
     setattr(broker.state, _ROOT_CONTAINER_ATTR, container)
     container.add_providers(*_CONNECTION_PROVIDERS)
     if not manage_lifespan:
         return container
 
+    closer = _RootCloser(container)
+
     def _open_root(_state: TaskiqState) -> None:
         container.open()
+        closer.broker_runs_middlewares = False
+        if closer not in broker.middlewares:
+            broker.add_middlewares(closer)
+        _move_to_end(broker.event_handlers[TaskiqEvents.WORKER_SHUTDOWN], _close_root)
 
     async def _close_root(_state: TaskiqState) -> None:
-        await container.close_async()
+        if closer.broker_runs_middlewares and closer in broker.middlewares:
+            _move_to_end(broker.middlewares, closer)
+        else:
+            await container.close_async()
 
     broker.add_event_handler(TaskiqEvents.WORKER_STARTUP, _open_root)
     broker.add_event_handler(TaskiqEvents.WORKER_SHUTDOWN, _close_root)
