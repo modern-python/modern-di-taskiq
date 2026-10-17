@@ -16,9 +16,11 @@ _ROOT_CONTAINER_ATTR = "modern_di_container"
 _CONNECTION_PROVIDERS = (taskiq_message_provider,)
 
 
-def setup_di(broker: AsyncBroker, container: Container) -> Container:
+def setup_di(broker: AsyncBroker, container: Container, *, manage_lifespan: bool = True) -> Container:
     setattr(broker.state, _ROOT_CONTAINER_ATTR, container)
     container.add_providers(*_CONNECTION_PROVIDERS)
+    if not manage_lifespan:
+        return container
 
     def _open_root(_state: TaskiqState) -> None:
         container.open()

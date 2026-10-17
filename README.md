@@ -75,11 +75,29 @@ async def greet(
 
 The `WORKER_STARTUP`/`WORKER_SHUTDOWN` events fire when the broker's worker process starts and stops, so a script that calls tasks directly (like `InMemoryBroker` in a test) must drive the container lifecycle itself, for example with `async with broker: ...`. Providers resolve synchronously, but the per-task `Scope.REQUEST` child is closed with `close_async()`, so REQUEST-scoped providers can have async finalizers. `taskiq.TaskiqMessage` is resolvable within DI via the pre-built `taskiq_message_provider` context provider.
 
+### Sharing a container
+
+When one container serves several apps, for example a taskiq worker and a web app in the same process, only one of them should open and close it. Pass `manage_lifespan=False` and own the root container yourself:
+
+```python
+container = Container(groups=[AppGroup])
+setup_di(broker, container, manage_lifespan=False)
+
+
+async def main() -> None:
+    async with container:
+        await broker.startup()
+        ...
+        await broker.shutdown()
+```
+
+The worker events then leave the root container alone. Each task still gets its own `Scope.REQUEST` child, closed when the task ends. APP-scoped finalizers run once, when the `async with` block exits.
+
 ## API
 
 | Symbol | Description |
 |---|---|
-| `setup_di(broker, container)` | Stores the root container on `broker.state`, opens/closes it on worker startup/shutdown, and registers `taskiq_message_provider`. Returns the container |
+| `setup_di(broker, container, *, manage_lifespan=True)` | Stores the root container on `broker.state`, opens/closes it on worker startup/shutdown, and registers `taskiq_message_provider`. With `manage_lifespan=False` it never opens or closes the root container, so the caller owns it; per-task children are built and closed as before. Returns the container |
 | `FromDI(dependency, *, use_cache=True)` | taskiq dependency that resolves a provider instance or a type from the task's `Scope.REQUEST` child container, building that child on first use; use it as `Annotated[T, FromDI(...)]` in task signatures. `use_cache` is passed to `TaskiqDepends`. Raises `RuntimeError` naming `setup_di` when a task reaches it without `setup_di` called |
 | `fetch_di_container(broker)` | Returns the root container attached to the taskiq broker |
 | `taskiq_message_provider` | `ContextProvider` for the current `taskiq.TaskiqMessage` (`REQUEST` scope) |
