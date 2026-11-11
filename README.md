@@ -107,6 +107,8 @@ The worker events then leave the root container alone. Each task still gets its 
 - [PyPI](https://pypi.org/project/modern-di-taskiq)
 - [License](https://github.com/modern-python/modern-di-taskiq/blob/main/LICENSE)
 
+If this project saves you time, consider giving it a star on GitHub.
+
 ## Part of `modern-python`
 
 Built on [`modern-di`](https://github.com/modern-python/modern-di), a dependency-injection framework with an IoC container and scopes.
